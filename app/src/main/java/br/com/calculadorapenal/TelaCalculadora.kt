@@ -68,7 +68,7 @@ fun TelaCalculadora() {
                     CampoNumero("Meses", meses, { meses = it; invalidar() }, Modifier.weight(1f))
                     CampoNumero("Dias", dias, { dias = it; invalidar() }, Modifier.weight(1f))
                 }
-                Text("Regime atual", style = MaterialTheme.typography.labelLarge)
+                Text("Regime inicial (sem progressão anterior)", style = MaterialTheme.typography.labelLarge)
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -117,7 +117,8 @@ fun TelaCalculadora() {
                     )
                     Text(
                         "Confirmo que é uma condenação única, sem falta grave, interrupção, " +
-                            "detração, remição, progressão anterior ou hipótese especial.",
+                            "detração, remição ou progressão anterior; não há hipótese especial " +
+                            "(crimes do Título XII do Código Penal ou art. 112, § 3º).",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 12.dp)
                     )
