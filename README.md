@@ -1,54 +1,103 @@
-# Calculadora Penal — Kotlin Android
+# Calculadora Penal — Kotlin (V3)
 
-Projeto acadêmico de **calculadora penal offline**, desenvolvido em Kotlin e Jetpack Compose, para a disciplina de Desenvolvimento de Aplicativos com Kotlin.
+Projeto acadêmico de apoio à execução penal, desenvolvido em Kotlin.
 
-## O que faz (V2 inicial)
+- **app/**: interface Android com Jetpack Compose.
+- **server/**: API REST local em Kotlin/JVM com Ktor, responsável por todas as simulações.
+- **Sem banco de dados, autenticação ou histórico.** Cada requisição é processada em memória.
 
-- Recebe duração da pena, regime, classificação do crime, reincidência e datas.
-- Simula **o requisito objetivo temporal da primeira progressão** para condenação única por crime comum.
-- Considera fatos desde **23/01/2020**, diferenciando as redações do art. 112 da LEP:
-  - Crimes comuns sem violência/grave ameaça, primário: **16%** para fatos anteriores a 08/05/2026; **1/6** para fatos a partir dessa data.
-  - Sem violência, reincidente: **20%**.
-  - Com violência/grave ameaça, primário: **25%**.
-  - Com violência/grave ameaça, reincidente: **30%**.
-- Apresenta data estimada, dias exigidos, saldo estimado e fundamento legal.
-- Trabalha totalmente **offline**, sem banco de dados, histórico ou permissão de internet.
+> Simulador acadêmico do requisito objetivo de primeira progressão em hipóteses restritas. Não substitui análise jurídica ou decisão judicial.
 
-### Limitações importantes
+## Requisitos
 
-Este é um **simulador acadêmico**, não um cálculo processual. Para que a simulação seja executada, deve haver confirmação de que:
-- existe **uma única condenação** por crime comum sem hipótese especial;
-- não houve **falta grave, interrupção de cumprimento, remição, detração ou progressão anterior**;
-- não se aplica nenhuma hipótese especial de progressão (incluindo crimes hediondos/equiparados, art. 112, § 3º, ou categorias especiais).
+- Ubuntu com JDK 17 e Android SDK 37 instalados.
+- Emulador Android configurado (ex.: `Small_Phone`).
+- O projeto usa Gradle Wrapper 9.6, Android Gradle Plugin 9.4 e Ktor 3.6.1.
 
-Casos fora dessas condições são recusados. O aplicativo **não avalia requisitos subjetivos**, como boa conduta e exame criminológico, nem substitui decisão judicial.
+## Executar pelo VS Code
 
-**Convenção didática de contagem:** anos = 365 dias; meses = 30 dias; dia inicial incluído; frações de dia arredondadas para cima. Essa é uma projeção simplificada, que deverá ser confrontada com cálculos judiciais/SEEU antes de qualquer utilização profissional.
+Abra a pasta do repositório com `code .`. Em três terminais:
 
-### Referências
-
-- LEP, art. 112 (texto consolidado do Senado): https://legis.senado.leg.br/norma/549086/publicacao/34619809
-- Lei 13.964/2019: https://www2.camara.leg.br/legin/fed/lei/2019/lei-13964-24-dezembro-2019-789639-normaatualizada-pl.html
-- Lei 15.402/2026: https://www2.camara.leg.br/legin/fed/lei/2026/lei-15402-8-maio-2026-799086-norma-pl.html
-- Cartilha do CNJ sobre cálculo de percentuais: https://www.cnj.jus.br/wp-content/uploads/2023/07/cartilha-de-direitos-das-pessoas-privadas-e-egressas.pdf
-- Android Compose: https://developer.android.com/develop/ui/compose
-
-## Executar
-
-Abra este projeto no Android Studio com **JDK 17** e **SDK Android 37**. Aguarde a sincronização Gradle e execute o módulo `app` em um dispositivo ou emulador Android (API 26+).
-
-Executar testes unitários:
+**Terminal 1 — Backend**
 
 ```bash
-./gradlew testDebugUnitTest
+./gradlew :server:run
 ```
 
-## Código
+O servidor escuta em `127.0.0.1:8080` por padrão (variável de ambiente `PORT` para outra porta).
 
-- `CalculadoraPena.kt`: modelos e cálculo de dias.
-- `RegrasProgressao.kt`: frações e base legal.
-- `TelaCalculadora.kt`: formulário, calendário e resultado.
-- `Tema.kt`: cores e estilo.
-- `CalculadoraPenaTest.kt`: testes de cenários e exceções.
+Confirme em outro terminal:
 
-O código é deliberadamente pequeno: módulo único, sem backend, banco de dados, injeção de dependências ou camadas adicionais.
+```bash
+curl http://127.0.0.1:8080/health
+```
+
+Resposta: `{"status":"ok"}`.
+
+**Terminal 2 — Emulador**
+
+```bash
+~/Android/Sdk/emulator/emulator -avd Small_Phone -gpu swiftshader -no-snapshot-load
+```
+
+Se o emulador já estiver aberto, não execute outra instância com o mesmo nome.
+
+**Terminal 3 — Android**
+
+```bash
+./gradlew :app:installDebug
+~/Android/Sdk/platform-tools/adb shell am start -n br.com.calculadorapenal/.MainActivity
+```
+
+A interface envia os dados para `http://10.0.2.2:8080/api/calcular`, alias do `127.0.0.1` do computador no emulador. Não é necessário acesso à internet pública, mas o servidor precisa estar ligado.
+
+Também há tarefas prontas em `.vscode/tasks.json`, acessíveis pelo menu **Terminal > Run Task**.
+
+## Testes e build
+
+```bash
+./gradlew :server:test
+./gradlew :app:assembleDebug
+```
+
+Para testar a API:
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/calcular \
+  -H "Content-Type: application/json" \
+  -d '{"anos":1,"meses":0,"dias":0,"regime":"FECHADO","tipoCrime":"COMUM_SEM_VIOLENCIA","reincidente":false,"dataFato":"2025-01-01","inicio":"2025-02-01","referencia":"2025-02-01","casoSimples":true}'
+```
+
+## Estrutura do projeto
+
+```text
+app/src/main/java/br/com/calculadorapenal/
+├── MainActivity.kt          # Inicializa o Android
+├── TelaCalculadora.kt       # Formulário e resultados Compose
+├── Tema.kt                  # Estilo visual
+├── ModelosApi.kt            # Campos e resultados do frontend
+└── ApiClient.kt             # Requisição HTTP para o backend
+
+server/src/main/kotlin/br/com/calculadorapenal/
+├── Servidor.kt              # Ktor, rotas e tratamento de erros
+├── Modelos.kt               # Contrato JSON
+├── CalculadoraPena.kt       # Cálculos temporais
+├── RegrasProgressao.kt      # Seleção de frações legais
+└── CasoNaoSuportadoException.kt
+
+server/src/test/kotlin/br/com/calculadorapenal/
+├── CalculadoraPenaTest.kt   # Testes do cálculo e das regras
+└── ServidorTest.kt          # Testes da API HTTP
+
+docs/
+├── arquitetura.md
+└── regras-juridicas.md
+```
+
+## Limites do projeto
+
+Condenação única por crime comum; fatos desde 23/01/2020; primeira progressão; sem detração, remição, faltas graves, interrupções ou hipóteses especiais. Requisitos subjetivos não são avaliados. As regras legais e a convenção de contagem são descritas em [docs/regras-juridicas.md](docs/regras-juridicas.md).
+
+A comunicação HTTP sem TLS é permitida **somente na variante Android debug**. O servidor escuta apenas no loopback do computador, e a URL do frontend foi projetada para o emulador Android.
+
+Veja [docs/arquitetura.md](docs/arquitetura.md) para o fluxo e os endpoints da API.

@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: iniciar (8080)",
+      "type": "shell",
+      "command": "./gradlew :server:run",
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated" }
+    },
+    {
+      "label": "Backend: executar testes",
+      "type": "shell",
+      "command": "./gradlew :server:test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Android: instalar e abrir no emulador",
+      "type": "shell",
+      "command": "./gradlew :app:installDebug && \"$HOME/Android/Sdk/platform-tools/adb\" shell am start -n br.com.calculadorapenal/.MainActivity",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Emulador: iniciar Small_Phone",
+      "type": "shell",
+      "command": "\"$HOME/Android/Sdk/emulator/emulator\" -avd Small_Phone -gpu swiftshader -no-snapshot-load",
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated" }
+    }
+  ]
+}
