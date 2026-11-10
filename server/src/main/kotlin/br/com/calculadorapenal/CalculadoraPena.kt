@@ -52,9 +52,13 @@ object CalculadoraPena {
         require(dados.meses in 0..11) { "Meses devem estar entre 0 e 11." }
         require(dados.dias in 0..30) { "Dias devem estar entre 0 e 30." }
         require(dados.anos + dados.meses + dados.dias > 0) { "Informe uma pena maior que zero." }
-        require(dados.regime != Regime.ABERTO) { "Não há próxima progressão a partir do regime aberto." }
-        require(dados.casoSimples) {
-            "Este cálculo só atende condenação única sem incidentes, detração ou remição."
+        if (dados.regime == Regime.ABERTO) {
+            throw CasoNaoSuportadoException("Não há próxima progressão a partir do regime aberto.")
+        }
+        if (!dados.casoSimples) {
+            throw CasoNaoSuportadoException(
+                "Este cálculo só atende condenação única sem incidentes, detração ou remição."
+            )
         }
         require(!dados.dataFato.isAfter(dados.inicio)) {
             "A data do fato não pode ser posterior à data-base."

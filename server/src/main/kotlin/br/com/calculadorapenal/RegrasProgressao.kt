@@ -19,11 +19,13 @@ object RegrasProgressao {
     private val marco2026 = LocalDate.of(2026, 5, 8)
 
     fun selecionar(dados: DadosCondenacao): RegraProgressao {
-        require(!dados.dataFato.isBefore(marco2019)) {
-            "Fatos anteriores a 23/01/2020 ainda não são suportados."
+        if (dados.dataFato.isBefore(marco2019)) {
+            throw CasoNaoSuportadoException("Fatos anteriores a 23/01/2020 ainda não são suportados.")
         }
-        require(dados.tipoCrime != TipoCrime.ESPECIAL) {
-            "Crimes hediondos, equiparados e hipóteses especiais não são suportados."
+        if (dados.tipoCrime == TipoCrime.ESPECIAL) {
+            throw CasoNaoSuportadoException(
+                "Crimes hediondos, equiparados e hipóteses especiais não são suportados."
+            )
         }
 
         val lei2026 = !dados.dataFato.isBefore(marco2026)
