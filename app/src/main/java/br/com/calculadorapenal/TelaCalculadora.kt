@@ -16,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import java.io.IOException
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,8 +48,15 @@ fun TelaCalculadora() {
     var casoSimples by remember { mutableStateOf(false) }
     var resultado by remember { mutableStateOf<ResultadoPena?>(null) }
     var erro by remember { mutableStateOf<String?>(null) }
+    var calculando by remember { mutableStateOf(false) }
+    var revisaoFormulario by remember { mutableIntStateOf(0) }
+    val escopo = rememberCoroutineScope()
 
-    fun invalidar() { resultado = null; erro = null }
+    fun invalidar() {
+        resultado = null
+        erro = null
+        revisaoFormulario++
+    }
 
     Scaffold(containerColor = FundoClaro) { margem ->
         Column(
@@ -127,9 +136,10 @@ fun TelaCalculadora() {
             }
 
             Button(
+                enabled = !calculando,
                 onClick = {
-                    try {
-                        val dados = DadosCondenacao(
+                    val dados = try {
+                        DadosCondenacao(
                             anos = requireNotNull(anos.toIntOrNull()) { "Informe os anos." },
                             meses = requireNotNull(meses.toIntOrNull()) { "Informe os meses." },
                             dias = requireNotNull(dias.toIntOrNull()) { "Informe os dias." },
@@ -141,19 +151,42 @@ fun TelaCalculadora() {
                             referencia = LocalDate.parse(referencia),
                             casoSimples = casoSimples
                         )
-                        resultado = CalculadoraPena.calcular(dados)
-                        erro = null
-                    } catch (e: DateTimeException) {
-                        resultado = null
+                    } catch (_: DateTimeException) {
                         erro = "Selecione as três datas válidas."
+                        null
                     } catch (e: IllegalArgumentException) {
-                        resultado = null
                         erro = e.message ?: "Confira os dados."
+                        null
+                    }
+
+                    if (dados != null) {
+                        val revisaoEnviada = revisaoFormulario
+                        calculando = true
+                        erro = null
+                        resultado = null
+                        escopo.launch {
+                            try {
+                                val resposta = ApiClient.calcular(dados)
+                                if (revisaoFormulario == revisaoEnviada) {
+                                    resultado = resposta
+                                }
+                            } catch (e: IOException) {
+                                if (revisaoFormulario == revisaoEnviada) {
+                                    erro = "Servidor local indisponível. Inicie ./gradlew :server:run."
+                                }
+                            } catch (e: IllegalArgumentException) {
+                                if (revisaoFormulario == revisaoEnviada) {
+                                    erro = e.message ?: "Dados inválidos."
+                                }
+                            } finally {
+                                calculando = false
+                            }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
             ) {
-                Text("Calcular progressão")
+                Text(if (calculando) "Calculando..." else "Calcular progressão")
             }
 
             erro?.let {
