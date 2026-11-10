@@ -9,44 +9,77 @@ enum class Regime(val descricao: String) {
     ABERTO("Aberto")
 }
 
+enum class TipoCrime(val descricao: String) {
+    COMUM_SEM_VIOLENCIA("Comum, sem violência ou grave ameaça"),
+    COMUM_COM_VIOLENCIA("Comum, com violência ou grave ameaça"),
+    ESPECIAL("Hediondo, equiparado ou outra hipótese especial")
+}
+
 data class DadosCondenacao(
     val anos: Int,
     val meses: Int,
     val dias: Int,
     val regime: Regime,
+    val tipoCrime: TipoCrime,
+    val reincidente: Boolean,
+    val dataFato: LocalDate,
     val inicio: LocalDate,
-    val referencia: LocalDate
+    val referencia: LocalDate,
+    val casoSimples: Boolean
 )
 
 data class ResultadoPena(
-    val terminoTeorico: LocalDate,
-    val diasDecorridos: Long,
-    val diasRestantes: Long
+    val regimeSeguinte: Regime,
+    val regra: RegraProgressao,
+    val totalDias: Long,
+    val requisitoDias: Long,
+    val diasCumpridos: Long,
+    val diasRestantes: Long,
+    val diasParaProgressao: Long,
+    val dataProgressao: LocalDate,
+    val terminoTeorico: LocalDate
 )
 
 /**
- * Projeção cronológica didática: pressupõe cumprimento contínuo.
- * NÃO calcula progressão de regime ou saldo jurídico da execução penal.
+ * Cálculo didático do requisito OBJETIVO da primeira progressão.
+ * Pressupõe pena única, execução contínua e ausência de incidentes.
+ * Anos = 365 dias; meses = 30 dias (convenção explicada na cartilha do CNJ).
+ * O dia inicial conta como cumprido; a fração é arredondada para cima em dias.
  */
 object CalculadoraPena {
     fun calcular(dados: DadosCondenacao): ResultadoPena {
-        require(dados.anos >= 0) { "Anos não podem ser negativos." }
+        require(dados.anos in 0..100) { "Anos devem estar entre 0 e 100." }
         require(dados.meses in 0..11) { "Meses devem estar entre 0 e 11." }
         require(dados.dias in 0..30) { "Dias devem estar entre 0 e 30." }
-        require(dados.anos + dados.meses + dados.dias > 0) {
-            "Informe uma duração maior que zero."
+        require(dados.anos + dados.meses + dados.dias > 0) { "Informe uma pena maior que zero." }
+        require(dados.regime != Regime.ABERTO) { "Não há próxima progressão a partir do regime aberto." }
+        require(dados.casoSimples) {
+            "Este cálculo só atende condenação única sem incidentes, detração ou remição."
+        }
+        require(!dados.dataFato.isAfter(dados.inicio)) {
+            "A data do fato não pode ser posterior à data-base."
         }
         require(!dados.referencia.isBefore(dados.inicio)) {
-            "A data de referência não pode ser anterior ao início."
+            "A data de referência não pode ser anterior à data-base."
         }
 
-        val termino = dados.inicio.plusYears(dados.anos.toLong())
-            .plusMonths(dados.meses.toLong())
-            .plusDays(dados.dias.toLong())
+        val regra = RegrasProgressao.selecionar(dados)
+        val total = dados.anos * 365L + dados.meses * 30L + dados.dias
+        // Teto da fração: não antecipar o requisito temporal por parte de um dia.
+        val requisito = (total * regra.numerador + regra.denominador - 1) / regra.denominador
+        val cumpridos = (ChronoUnit.DAYS.between(dados.inicio, dados.referencia) + 1)
+            .coerceIn(0L, total)
 
-        val decorridos = ChronoUnit.DAYS.between(dados.inicio, minOf(dados.referencia, termino))
-        val restantes = ChronoUnit.DAYS.between(dados.referencia, termino).coerceAtLeast(0)
-
-        return ResultadoPena(termino, decorridos, restantes)
+        return ResultadoPena(
+            regimeSeguinte = if (dados.regime == Regime.FECHADO) Regime.SEMIABERTO else Regime.ABERTO,
+            regra = regra,
+            totalDias = total,
+            requisitoDias = requisito,
+            diasCumpridos = cumpridos,
+            diasRestantes = total - cumpridos,
+            diasParaProgressao = (requisito - cumpridos).coerceAtLeast(0),
+            dataProgressao = dados.inicio.plusDays(requisito - 1),
+            terminoTeorico = dados.inicio.plusDays(total - 1)
+        )
     }
 }
