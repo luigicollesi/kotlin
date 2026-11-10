@@ -11,12 +11,12 @@ class CalculadoraPenaTest {
         inicio: String = "2025-02-01",
         referencia: String = "2025-02-01",
         tipo: TipoCrime = TipoCrime.COMUM_SEM_VIOLENCIA,
-        reincidente: Boolean = false,
+        reincidencia: Reincidencia = Reincidencia.PRIMARIO,
         regime: Regime = Regime.FECHADO,
         confirmado: Boolean = true
     ) = DadosCondenacao(
         anos = 1, meses = 0, dias = 0, regime = regime, tipoCrime = tipo,
-        reincidente = reincidente, dataFato = LocalDate.parse(fato),
+        reincidencia = reincidencia, dataFato = LocalDate.parse(fato),
         inicio = LocalDate.parse(inicio), referencia = LocalDate.parse(referencia),
         casoSimples = confirmado
     )
@@ -41,10 +41,10 @@ class CalculadoraPenaTest {
     }
 
     @Test fun calculaDemaisFracoesComuns() {
-        val recid = CalculadoraPena.calcular(dados(reincidente = true))
+        val recid = CalculadoraPena.calcular(dados(reincidencia = Reincidencia.ANTERIOR_SEM_VIOLENCIA))
         val viol = CalculadoraPena.calcular(dados(tipo = TipoCrime.COMUM_COM_VIOLENCIA))
         val violRecid = CalculadoraPena.calcular(dados(
-            tipo = TipoCrime.COMUM_COM_VIOLENCIA, reincidente = true
+            tipo = TipoCrime.COMUM_COM_VIOLENCIA, reincidencia = Reincidencia.ANTERIOR_COM_VIOLENCIA
         ))
         assertEquals(73L, recid.requisitoDias)
         assertEquals(92L, viol.requisitoDias)
@@ -105,4 +105,53 @@ class CalculadoraPenaTest {
     fun naoAceitaFatoPosteriorADataBase() {
         CalculadoraPena.calcular(dados(fato = "2025-03-01", inicio = "2025-02-01"))
     }
+    @Test fun reincidenciaGenericaViolentaAntesDeMaio2026Aplica25() {
+        val r = CalculadoraPena.calcular(
+            dados(tipo = TipoCrime.COMUM_COM_VIOLENCIA,
+                reincidencia = Reincidencia.ANTERIOR_SEM_VIOLENCIA)
+        )
+        assertEquals(92L, r.requisitoDias)
+        assertEquals("25%", r.regra.descricao)
+        assertTrue(r.regra.fundamento.contains("STJ"))
+    }
+
+    @Test fun reincidenciaEspecificaViolentaAntesDeMaio2026Aplica30() {
+        val r = CalculadoraPena.calcular(
+            dados(tipo = TipoCrime.COMUM_COM_VIOLENCIA,
+                reincidencia = Reincidencia.ANTERIOR_COM_VIOLENCIA)
+        )
+        assertEquals(110L, r.requisitoDias)
+    }
+
+    @Test fun reincidenciaGenericaViolentaDepoisDeMaio2026Aplica30() {
+        val r = CalculadoraPena.calcular(
+            dados(fato = "2026-05-08", inicio = "2026-06-01", referencia = "2026-06-01",
+                tipo = TipoCrime.COMUM_COM_VIOLENCIA,
+                reincidencia = Reincidencia.ANTERIOR_SEM_VIOLENCIA)
+        )
+        assertEquals(110L, r.requisitoDias)
+        assertTrue(r.regra.fundamento.contains("15.402/2026"))
+    }
+
+    @Test fun reincidenciaEmCrimeNaoViolentoAplica20NasDuasSituacoes() {
+        for (situacao in listOf(
+            Reincidencia.ANTERIOR_SEM_VIOLENCIA, Reincidencia.ANTERIOR_COM_VIOLENCIA
+        )) {
+            assertEquals(73L, CalculadoraPena.calcular(dados(reincidencia = situacao)).requisitoDias)
+        }
+    }
+
+    @Test(expected = CasoNaoSuportadoException::class)
+    fun recusaReincidenciaNaoInformada() {
+        CalculadoraPena.calcular(dados(reincidencia = Reincidencia.NAO_INFORMADO))
+    }
+
+    @Test fun contaDiasCorridosEmAnoBissextoComConvencaoDe365Dias() {
+        val r = CalculadoraPena.calcular(dados(fato = "2024-01-01",
+            inicio = "2024-02-28", referencia = "2024-02-29"))
+        assertEquals(2L, r.diasCumpridos)
+        assertEquals(365L, r.totalDias)
+        assertEquals(363L, r.diasRestantes)
+    }
+
 }

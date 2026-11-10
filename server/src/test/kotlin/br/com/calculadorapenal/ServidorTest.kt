@@ -21,7 +21,7 @@ class ServidorTest {
           "dias": 0,
           "regime": "FECHADO",
           "tipoCrime": "COMUM_SEM_VIOLENCIA",
-          "reincidente": false,
+          "reincidencia": "PRIMARIO",
           "dataFato": "2025-01-01",
           "inicio": "2025-02-01",
           "referencia": "2025-02-01",
@@ -81,4 +81,40 @@ class ServidorTest {
         }
         assertEquals(HttpStatusCode.BadRequest, resposta.status)
     }
+    @Test
+    fun rejeitaReincidenciaDesconhecida() = testApplication {
+        application { configurarServidor() }
+        val resposta = client.post("/api/calcular") {
+            headers.append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody(jsonValido.replace("\"PRIMARIO\"", "\"NAO_INFORMADO\""))
+        }
+        assertEquals(HttpStatusCode.UnprocessableEntity, resposta.status)
+    }
+
+    @Test
+    fun rejeitaRegimeInvalido() = testApplication {
+        application { configurarServidor() }
+        val resposta = client.post("/api/calcular") {
+            headers.append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            setBody(jsonValido.replace("\"FECHADO\"", "\"DESCONHECIDO\""))
+        }
+        assertEquals(HttpStatusCode.BadRequest, resposta.status)
+    }
+
+    @Test
+    fun aplica25PorCentoAoReincidenteGenericoPorCrimeViolentoAnteriorA2026() =
+        testApplication {
+            application { configurarServidor() }
+            val corpo = jsonValido
+                .replace("COMUM_SEM_VIOLENCIA", "COMUM_COM_VIOLENCIA")
+                .replace("PRIMARIO", "ANTERIOR_SEM_VIOLENCIA")
+            val resposta = client.post("/api/calcular") {
+                headers.append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                setBody(corpo)
+            }
+            assertEquals(HttpStatusCode.OK, resposta.status)
+            val resultado = Json.decodeFromString<RespostaCalculo>(resposta.bodyAsText())
+            assertEquals(92L, resultado.requisitoDias)
+        }
+
 }

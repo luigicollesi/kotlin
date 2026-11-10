@@ -11,7 +11,7 @@ data class PedidoCalculo(
     val dias: Int,
     val regime: String,
     val tipoCrime: String,
-    val reincidente: Boolean,
+    val reincidencia: String,
     val dataFato: String,
     val inicio: String,
     val referencia: String,
@@ -21,9 +21,12 @@ data class PedidoCalculo(
         anos = anos,
         meses = meses,
         dias = dias,
-        regime = Regime.valueOf(regime),
-        tipoCrime = TipoCrime.valueOf(tipoCrime),
-        reincidente = reincidente,
+        regime = Regime.entries.firstOrNull { it.name == regime }
+            ?: throw IllegalArgumentException("Informe um regime válido."),
+        tipoCrime = TipoCrime.entries.firstOrNull { it.name == tipoCrime }
+            ?: throw IllegalArgumentException("Informe uma classificação de crime válida."),
+        reincidencia = Reincidencia.entries.firstOrNull { it.name == reincidencia }
+            ?: throw IllegalArgumentException("Informe uma situação de reincidência válida."),
         dataFato = LocalDate.parse(dataFato),
         inicio = LocalDate.parse(inicio),
         referencia = LocalDate.parse(referencia),
