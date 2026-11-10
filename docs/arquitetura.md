@@ -10,7 +10,7 @@ Separar apresentação e cálculos jurídicos sem criar sistemas de autenticaç�
 | `app` | Kotlin + Jetpack Compose | Formulário, calendário, animação, apresentação e mensagens |
 | `server` | Kotlin/JVM + Ktor | Validações, seleção de regras, cálculos e resposta JSON |
 
-Os cálculos são executados **somente no servidor**. O Android possui modelos de entrada e saída para o contrato, mas não contém lógica de progressão penal.
+Os cálculos são executados **somente no servidor**. O Android possui modelos de entrada e saída para o contrato, mas não contém lógica de progressão penal. O formulário apresenta perguntas guiadas e evita enviar casos que não podem ser classificados.
 
 ## Fluxo
 
@@ -38,7 +38,7 @@ Os cálculos são executados **somente no servidor**. O Android possui modelos d
   "dias": 0,
   "regime": "FECHADO",
   "tipoCrime": "COMUM_SEM_VIOLENCIA",
-  "reincidente": false,
+  "reincidencia": "PRIMARIO",
   "dataFato": "2025-01-01",
   "inicio": "2025-02-01",
   "referencia": "2025-02-01",
@@ -74,6 +74,8 @@ No Ubuntu, a API escuta em `127.0.0.1:8080`. O emulador Android acessa o host pe
 - `INTERNET` no Android é necessária para comunicar por HTTP, **mesmo sem internet pública**.
 - A opção de tráfego HTTP sem TLS está no manifesto da variante `debug`, somente para desenvolvimento.
 - O emulador deve executar no mesmo computador que o backend.
+- Valores de reincidência aceitos pela API: `PRIMARIO`, `ANTERIOR_SEM_VIOLENCIA`, `ANTERIOR_COM_VIOLENCIA` ou `NAO_INFORMADO`; este último recebe HTTP 422.
+- HTTP 500, falha de conexão e JSON de resposta inválido apresentam mensagens distintas no Android.
 - Um celular físico não resolve `10.0.2.2` para o Ubuntu; precisaria de configuração própria de rede.
 
 ## Privacidade e limitações

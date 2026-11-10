@@ -1,10 +1,11 @@
-# Calculadora Penal — Kotlin (V3)
+# Calculadora Penal — Kotlin (V3, app 0.4.0)
 
 Projeto acadêmico de apoio à execução penal, desenvolvido em Kotlin.
 
 - **app/**: interface Android com Jetpack Compose.
 - **server/**: API REST local em Kotlin/JVM com Ktor, responsável por todas as simulações.
 - **Sem banco de dados, autenticação ou histórico.** Cada requisição é processada em memória.
+- Formulário guiado por classificação jurídica, violência/grave ameaça e tipo de reincidência.
 
 > Simulador acadêmico do requisito objetivo de primeira progressão em hipóteses restritas. Não substitui análise jurídica ou decisão judicial.
 
@@ -65,7 +66,7 @@ Para testar a API:
 ```bash
 curl -X POST http://127.0.0.1:8080/api/calcular \
   -H "Content-Type: application/json" \
-  -d '{"anos":1,"meses":0,"dias":0,"regime":"FECHADO","tipoCrime":"COMUM_SEM_VIOLENCIA","reincidente":false,"dataFato":"2025-01-01","inicio":"2025-02-01","referencia":"2025-02-01","casoSimples":true}'
+  -d '{"anos":1,"meses":0,"dias":0,"regime":"FECHADO","tipoCrime":"COMUM_SEM_VIOLENCIA","reincidencia":"PRIMARIO","dataFato":"2025-01-01","inicio":"2025-02-01","referencia":"2025-02-01","casoSimples":true}'
 ```
 
 ## Estrutura do projeto
@@ -96,7 +97,14 @@ docs/
 
 ## Limites do projeto
 
-Condenação única por crime comum; fatos desde 23/01/2020; primeira progressão; sem detração, remição, faltas graves, interrupções ou hipóteses especiais. Requisitos subjetivos não são avaliados. As regras legais e a convenção de contagem são descritas em [docs/regras-juridicas.md](docs/regras-juridicas.md).
+Apenas uma pena em execução por crime comum; fatos desde 23/01/2020; primeira progressão; sem detração, remição, faltas graves, interrupções ou hipóteses especiais. Requisitos subjetivos não são avaliados. As regras legais e a convenção de contagem são descritas em [docs/regras-juridicas.md](docs/regras-juridicas.md).
+
+O formulário distingue crimes comuns de casos especiais e solicita a classificação da
+reincidência. Não calcula se uma informação jurídica essencial estiver indefinida.
+Para fatos anteriores a 08/05/2026, o backend diferencia a reincidência genérica
+em crimes comuns com violência (25%) da reincidência em delito violento (30%).
+A partir de 08/05/2026, a nova redação do art. 112 da LEP prevê 30% para
+reincidentes em crimes comuns com violência ou grave ameaça, no recorte suportado.
 
 A comunicação HTTP sem TLS é permitida **somente na variante Android debug**. O servidor escuta apenas no loopback do computador, e a URL do frontend foi projetada para o emulador Android.
 
