@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "CalculadoraPenal"
-include(":app")
+include(":app", ":server")
