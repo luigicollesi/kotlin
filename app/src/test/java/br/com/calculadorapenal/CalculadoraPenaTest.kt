@@ -88,7 +88,8 @@ class CalculadoraPenaTest {
     @Test(expected = IllegalArgumentException::class)
     fun naoAceitaDataBasePosteriorAReferencia() {
         CalculadoraPena.calcular(dados(referencia = "2025-01-01"))
-    
+    }
+
     @Test fun marcoDaNovaLeiNaoAlteraFatoDoDiaAnterior() {
         val anterior = CalculadoraPena.calcular(
             dados("2026-05-07", "2026-06-01", "2026-06-01")
