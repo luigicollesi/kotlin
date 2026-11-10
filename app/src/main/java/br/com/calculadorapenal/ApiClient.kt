@@ -12,6 +12,9 @@ import java.time.LocalDate
  * Cliente HTTP mínimo para o emulador Android.
  * 10.0.2.2 acessa o localhost do computador que executa o Ktor.
  */
+class ErroInternoServidorException : Exception()
+class RespostaInvalidaException : Exception()
+
 object ApiClient {
     private const val ENDERECO = "http://10.0.2.2:8080/api/calcular"
 
@@ -22,7 +25,7 @@ object ApiClient {
             .put("dias", dados.dias)
             .put("regime", dados.regime.name)
             .put("tipoCrime", dados.tipoCrime.name)
-            .put("reincidente", dados.reincidente)
+            .put("reincidencia", dados.reincidencia.name)
             .put("dataFato", dados.dataFato.toString())
             .put("inicio", dados.inicio.toString())
             .put("referencia", dados.referencia.toString())
@@ -50,29 +53,29 @@ object ApiClient {
                 throw IllegalArgumentException(mensagem)
             }
             if (status !in 200..299) {
-                throw IOException("Erro HTTP $status no servidor.")
+                throw ErroInternoServidorException()
             }
 
-            val json = try {
-                JSONObject(corpo)
+            try {
+                val json = JSONObject(corpo)
+                val regra = json.getJSONObject("regra")
+                ResultadoPena(
+                    regimeSeguinte = Regime.valueOf(json.getString("regimeSeguinte")),
+                    regra = RegraProgressao(
+                        descricao = regra.getString("descricao"),
+                        fundamento = regra.getString("fundamento")
+                    ),
+                    totalDias = json.getLong("totalDias"),
+                    requisitoDias = json.getLong("requisitoDias"),
+                    diasCumpridos = json.getLong("diasCumpridos"),
+                    diasRestantes = json.getLong("diasRestantes"),
+                    diasParaProgressao = json.getLong("diasParaProgressao"),
+                    dataProgressao = LocalDate.parse(json.getString("dataProgressao")),
+                    terminoTeorico = LocalDate.parse(json.getString("terminoTeorico"))
+                )
             } catch (_: Exception) {
-                throw IOException("Resposta JSON inválida do servidor.")
+                throw RespostaInvalidaException()
             }
-            val regra = json.getJSONObject("regra")
-            ResultadoPena(
-                regimeSeguinte = Regime.valueOf(json.getString("regimeSeguinte")),
-                regra = RegraProgressao(
-                    descricao = regra.getString("descricao"),
-                    fundamento = regra.getString("fundamento")
-                ),
-                totalDias = json.getLong("totalDias"),
-                requisitoDias = json.getLong("requisitoDias"),
-                diasCumpridos = json.getLong("diasCumpridos"),
-                diasRestantes = json.getLong("diasRestantes"),
-                diasParaProgressao = json.getLong("diasParaProgressao"),
-                dataProgressao = LocalDate.parse(json.getString("dataProgressao")),
-                terminoTeorico = LocalDate.parse(json.getString("terminoTeorico"))
-            )
         } finally {
             conexao.disconnect()
         }

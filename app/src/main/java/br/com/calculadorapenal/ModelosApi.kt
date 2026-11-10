@@ -15,13 +15,20 @@ enum class TipoCrime(val descricao: String) {
     ESPECIAL("Hediondo, equiparado ou outra hipótese especial")
 }
 
+enum class Reincidencia(val descricao: String) {
+    PRIMARIO("Não, é primário"),
+    ANTERIOR_SEM_VIOLENCIA("Sim, crime anterior sem violência ou grave ameaça"),
+    ANTERIOR_COM_VIOLENCIA("Sim, crime anterior com violência ou grave ameaça"),
+    NAO_INFORMADO("Não sei informar")
+}
+
 data class DadosCondenacao(
     val anos: Int,
     val meses: Int,
     val dias: Int,
     val regime: Regime,
     val tipoCrime: TipoCrime,
-    val reincidente: Boolean,
+    val reincidencia: Reincidencia,
     val dataFato: LocalDate,
     val inicio: LocalDate,
     val referencia: LocalDate,
