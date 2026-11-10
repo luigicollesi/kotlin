@@ -35,7 +35,7 @@ data class PedidoCalculo(
 data class RespostaErro(val erro: String)
 
 @Serializable
-data class RespostaSaude(val status: String = "ok")
+data class RespostaSaude(val status: String)
 
 @Serializable
 data class RegraApi(val descricao: String, val fundamento: String)

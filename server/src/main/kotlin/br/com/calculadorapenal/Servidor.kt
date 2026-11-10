@@ -27,7 +27,7 @@ fun Application.configurarServidor() {
 
     routing {
         get("/health") {
-            call.respond(RespostaSaude())
+            call.respond(RespostaSaude("ok"))
         }
 
         post("/api/calcular") {
